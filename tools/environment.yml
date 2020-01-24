@@ -1,0 +1,29 @@
+name: pupil-plugin-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - pip
+  - numpy
+  - opencv
+  - cysignals
+  - cython
+  - msgpack-python=0.5.6
+  - numexpr
+  - packaging
+  - psutil
+  - pyaudio
+  - pyopengl
+  - pyzmq
+  - scipy
+  - pip:
+    - pyrealsense2
+    - pupil-apriltags
+    - pupil-detectors
+    - git+https://github.com/zeromq/pyre
+    - git+https://github.com/pupil-labs/PyAv
+    - git+https://github.com/pupil-labs/pyuvc
+    - git+https://github.com/pupil-labs/pyndsi
+    - git+https://github.com/pupil-labs/pyglui
+    - git+https://github.com/pupil-labs/nslr
+    - git+https://github.com/pupil-labs/nslr-hmm
