@@ -30,7 +30,7 @@ class T265_Exporter(Raw_Data_Exporter):
     icon_font = "pupil_icons"
 
     def __init__(self, g_pool):
-        """"""
+        """ Constructor. """
         Plugin.__init__(self, g_pool)
 
         # TODO check if this blocks too long for long recordings
@@ -80,7 +80,7 @@ class T265_Exporter(Raw_Data_Exporter):
         logger.info(f"Created 't265_{side}_extrinsics.csv' file.")
 
     def export_data(self, export_window, export_dir):
-        """"""
+        """ Export data when notified. """
         odometry_exporter = OdometryExporter()
         odometry_exporter.csv_export_write(
                 positions_bisector=self.g_pool.odometry_bisector,
@@ -92,8 +92,8 @@ class T265_Exporter(Raw_Data_Exporter):
         if self.extrinsics is not None:
             self.export_extrinsics(export_dir, self.extrinsics)
 
-    def customize_menu(self):
-        """"""
+    def init_ui(self):
+        """ Initialize plugin UI. """
         self.add_menu()
         self.menu.label = "T265 Exporter"
         self.menu.append(
@@ -104,26 +104,22 @@ class T265_Exporter(Raw_Data_Exporter):
             ui.Info_Text(
                 "Press the export button or type 'e' to start the export."))
 
-    def init_ui(self):
-        """"""
-        self.customize_menu()
-
     def deinit_ui(self):
-        """"""
+        """ De-initialize plugin UI. """
         self.remove_menu()
 
 
 class OdometryExporter(_Base_Positions_Exporter):
-    """"""
+    """ Exporter backend. """
 
     @classmethod
     def csv_export_filename(cls):
-        """"""
+        """ Filename of exported file. """
         return "odometry.csv"
 
     @classmethod
     def csv_export_labels(cls):
-        """"""
+        """ CSV header. """
         return (
             "capture_timestamp",
             "realsense_timestamp",
@@ -146,7 +142,7 @@ class OdometryExporter(_Base_Positions_Exporter):
 
     @classmethod
     def dict_export(cls, raw_value, world_index):
-        """"""
+        """ One row of the CSV file. """
         return {
             "capture_timestamp": raw_value["timestamp"],
             "realsense_timestamp": raw_value["rs_timestamp"],
