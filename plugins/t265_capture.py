@@ -179,8 +179,9 @@ class T265_Recorder(Plugin):
         """ Load extrinsics from user dir. """
         load_path = os.path.join(directory, f"t265_{side}.extrinsics")
         try:
+            extrinsics = load_object(load_path)
             logger.info(f"Loaded t265_{side}.extrinsics")
-            return load_object(load_path)
+            return extrinsics
         except OSError:
             logger.warning("No extrinsics found. Use the T265 Calibration "
                            "plugin to calculate extrinsics.")
