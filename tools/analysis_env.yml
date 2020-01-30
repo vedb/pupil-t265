@@ -1,0 +1,16 @@
+name: pupil-t265
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - pip
+  - numpy
+  - pandas
+  - xarray
+  - scipy
+  - quaternion
+  - numba
+  - fast-histogram
+  - matplotlib
+  - colorcet
+  - ipykernel

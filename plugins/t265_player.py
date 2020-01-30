@@ -35,6 +35,7 @@ class T265_Exporter(Raw_Data_Exporter):
 
         # TODO check if this blocks too long for long recordings
         g_pool.odometry_bisector = self.init_bisector(g_pool.rec_dir)
+        logger.info("Loaded odometry data")
 
         self.extrinsics = self.load_extrinsics(g_pool.rec_dir)
 
