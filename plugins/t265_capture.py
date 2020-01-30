@@ -542,15 +542,28 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
                 "Please try again with a better coverage of the cameras FOV!")
             return
 
-        obj_points = [x.reshape(-1, 1, 3) for x in self.obj_points]
+
+        obj_points = np.array(
+            [x.reshape(1, -1, 3) for x in self.obj_points], dtype=np.float64)
+        img_points = np.array(
+            [x.reshape(1, -1, 2) for x in self.img_points], dtype=np.float64)
+        img_points_left = np.array(
+            [x.reshape(1, -1, 2) for x in self.img_points_left], 
+            dtype=np.float64)
+        img_points_right = np.array(
+            [x.reshape(1, -1, 2) for x in self.img_points_right], 
+            dtype=np.float64)
+
+        R = np.zeros((1, 1, 3), dtype=np.float64)
+        T = np.zeros((1, 1, 3), dtype=np.float64)
 
         try:
             rms, _, _, _, _, R_right_left, T_right_left = \
                 cv2.fisheye.stereoCalibrate(
-                    obj_points, self.img_points_right, self.img_points_left,
+                    obj_points, img_points_right, img_points_left,
                     cam_mtx_right, dist_coefs_right,
                     cam_mtx_left, dist_coefs_left,
-                    (0, 0), cv2.CALIB_FIX_INTRINSIC)
+                    (0, 0), R, T, cv2.CALIB_FIX_INTRINSIC)
 
             # orientation inaccuracy is deviation from identity matrix
             inacc = np.linalg.norm(R_right_left - np.eye(3))
@@ -564,13 +577,10 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         try:
             rms, _, _, _, _, R_world_left, T_world_left = \
                 cv2.fisheye.stereoCalibrate(
-                    obj_points, self.img_points, self.img_points_left,
+                    obj_points, img_points, img_points_left,
                     cam_mtx_world, dist_coefs_world,
                     cam_mtx_left, dist_coefs_left,
-                    (0, 0), cv2.CALIB_FIX_INTRINSIC)
-
-            logger.info(f"Calibrated world/left pair, RMS:{rms:.6f}")
-            logger.info(f"R_world_left:\n{np.around(R_world_left, 2)}")
+                    (0, 0), R, T, cv2.CALIB_FIX_INTRINSIC)
 
         except cv2.error as e:
             logger.warning(
