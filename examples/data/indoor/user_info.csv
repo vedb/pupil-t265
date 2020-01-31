@@ -1,0 +1,14 @@
+key,value
+subject,BS
+avor_yaw_start,00:00:49
+avor_yaw_end,00:00:59
+avor_pitch_start,00:00:57
+avor_pitch_end,00:01:07
+tvor_close_start,00:02:00
+tvor_close_end,00:02:11
+tvor_close_distance,1.219
+tvor_far_start,00:02:15
+tvor_far_end,00:02:25
+tvor_far_distance,2.143
+walk_start,00:02:44
+walk_end,00:06:19

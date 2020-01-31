@@ -95,8 +95,12 @@ def load_gaze(folder, info):
         'gaze_confidence': ('time', df['confidence']),
     }
 
-    return xr.Dataset(data_vars, coords)
+    ds = xr.Dataset(data_vars, coords)
 
+    _, idx = np.unique(ds.time, return_index=True)
+    ds = ds.isel(time=idx)
+
+    return ds
 
 def load_odometry(folder, info):
     """
