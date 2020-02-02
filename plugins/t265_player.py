@@ -52,8 +52,9 @@ class T265_Exporter(Raw_Data_Exporter):
         """ Load extrinsics from user dir. """
         load_path = os.path.join(directory, f"t265_{side}.extrinsics")
         try:
+            extrinsics = load_object(load_path)
             logger.info(f"Loaded t265_{side}.extrinsics")
-            return load_object(load_path)
+            return extrinsics
         except OSError:
             logger.warning("No extrinsics found. Use the T265 Calibration "
                            "plugin to calculate extrinsics.")
@@ -146,9 +147,10 @@ class OdometryExporter(_Base_Positions_Exporter):
         """ One row of the CSV file. """
         return {
             "capture_timestamp": raw_value["timestamp"],
-            "realsense_timestamp": raw_value["rs_timestamp"],
+            "realsense_timestamp": raw_value.get("rs_timestamp", 0.),
             "world_index": world_index,
-            "tracker_confidence": raw_value["tracker_confidence"],
+            "tracker_confidence": raw_value.get(
+                "tracker_confidence", raw_value.get("confidence", -1)),
             "position_x": raw_value["position"][0],
             "position_y": raw_value["position"][1],
             "position_z": raw_value["position"][2],

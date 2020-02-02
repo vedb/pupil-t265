@@ -8,6 +8,7 @@ Lesser General Public License (LGPL v3.0).
 See COPYING and COPYING.LESSER for license details.
 ---------------------------------------------------------------------------~(*)
 """
+import os
 import multiprocessing as mp
 
 import numpy as np
@@ -588,6 +589,7 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
 
         else:
             # TODO save world camera resolution and side?
+            # TODO align pupil and realsense coordinate systems
             self.g_pool.t265_extrinsics = {
                 "translation": T_world_left.tolist(),
                 "rotation": R_world_left.tolist()}

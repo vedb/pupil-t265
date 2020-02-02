@@ -87,6 +87,9 @@ def load_gaze(folder, info):
         'cartesian_axis': ['x', 'y', 'z'],
         'pixel_axis': ['x', 'y']}
 
+    # fix sign flip issue in 3d gaze point z coordinate
+    df.loc[:, 'gaze_point_3d_z'] = np.abs(df.loc[:, 'gaze_point_3d_z'])
+
     data_vars = {
         'gaze_point': (['time', 'cartesian_axis'],
                        df.loc[:, 'gaze_point_3d_x':'gaze_point_3d_z']),
@@ -97,10 +100,12 @@ def load_gaze(folder, info):
 
     ds = xr.Dataset(data_vars, coords)
 
+    # remove duplicate timestamps
     _, idx = np.unique(ds.time, return_index=True)
     ds = ds.isel(time=idx)
 
     return ds
+
 
 def load_odometry(folder, info):
     """
@@ -171,22 +176,6 @@ def load_extrinsics(folder, filename='t265_left_extrinsics.csv'):
 
 
 # ----- GAZE PRE-PROCESSING ----- #
-def correct_sign(data):
-    """
-
-    Parameters
-    ----------
-    data
-
-    Returns
-    -------
-
-    """
-    data = data.copy()
-    data.values[data[:, 2] < 0.] = -data.values[data[:, 2] < 0.]
-    return data
-
-
 def smooth(data, axis=0, window_len=10):
     """
 
