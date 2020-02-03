@@ -1,9 +1,9 @@
 key,value
 subject,BS
-avor_yaw_start,00:00:49
-avor_yaw_end,00:00:59
-avor_pitch_start,00:00:57
-avor_pitch_end,00:01:07
+rvor_yaw_start,00:00:49
+rvor_yaw_end,00:00:59
+rvor_pitch_start,00:00:57
+rvor_pitch_end,00:01:07
 tvor_close_start,00:02:00
 tvor_close_end,00:02:11
 tvor_close_distance,1.219
