@@ -564,11 +564,6 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
                 (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
                  max_iter, eps))
 
-        elif dist_mode == "Radial":
-            rms, camera_matrix, dist_coefs, _, _ = cv2.calibrateCamera(
-                np.array(obj_points), np.array(img_points),
-                img_shape, None, None)
-
         else:
             raise ValueError(
                 f"Unkown distortion model: {dist_mode}")
@@ -733,12 +728,6 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
             ui.Selector(
                 "monitor_idx", self, selection_getter=get_monitors_idx_list,
                 label="Monitor",))
-
-        dist_modes = ["Fisheye", "Radial"]
-        self.menu.append(
-            ui.Selector(
-                "dist_mode", self, selection=dist_modes,
-                label="Distortion Model"))
 
         self.menu.append(ui.Switch("fullscreen", self, label="Use Fullscreen"))
 
