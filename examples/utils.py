@@ -219,7 +219,7 @@ def clean(data, *rules):
 
 
 # ----- SPATIAL TRANSFORMS ----- #
-r_pupil_anatomic = as_float_array(from_rotation_matrix(np.array(
+r_pupil_analysis= as_float_array(from_rotation_matrix(np.array(
         [[0., 0., 1.], [-1., 0., 0.], [0., -1., 0.]]).T))
 
 
