@@ -19,13 +19,16 @@ import pyrealsense2 as rs
 from pyglui import ui
 from pyglui.pyfontstash import fontstash
 from pyglui.ui import get_opensans_font_path
+from pyglui.cygl.utils import draw_gl_texture
 from glfw import *
+from gl_utils import \
+    basic_gl_setup, clear_gl_screen, make_coord_system_norm_based
 
 from plugin import Plugin
 from uvc import get_time_monotonic
 from file_methods import PLData_Writer, load_object, save_object
 from camera_intrinsics_estimation import \
-    Camera_Intrinsics_Estimation, _gen_pattern_grid, _make_grid
+    Camera_Intrinsics_Estimation, _gen_pattern_grid, _make_grid, on_resize
 
 import logging
 logger = logging.getLogger(__name__)
@@ -70,8 +73,6 @@ class T265_Recorder(Plugin):
             "orientation": None,
             "angular_velocity": None,
             "linear_velocity": None}
-        self.show_video_switch = None
-        self.show_video = False
 
         self.g_pool.t265_extrinsics = self.load_extrinsics(
             self.g_pool.user_dir)
@@ -80,6 +81,10 @@ class T265_Recorder(Plugin):
         self.video_queue = mp.Queue()
 
         self.pipeline = None
+
+        self.t265_window = None
+        self.t265_window_should_close = False
+        self.last_video_frame = None
 
     @classmethod
     def get_serial_numbers(cls, suffix='T265'):
@@ -157,6 +162,10 @@ class T265_Recorder(Plugin):
             self.pipeline = None
             self.buttons["start_stop_button"].label = "Start Pipeline"
             logger.info("RealSense pipeline stopped.")
+
+            # Close video stream video if open
+            if self.t265_window is not None:
+                self.t265_window_should_close = True
 
     def frame_callback(self, rs_frame):
         """ Callback for new RealSense frames. """
@@ -286,38 +295,16 @@ class T265_Recorder(Plugin):
             for info in self.infos.values():
                 info.text = "Waiting..."
 
-    def maybe_show_video(self, video_frame):
-        """ Show T265 video stream or make sure window is closed. """
-        if self.show_video:
-            cv2.imshow("RealSense", video_frame)
-            cv2.waitKey(1)
-        else:
-            try:
-                cv2.destroyWindow("RealSense")
-            except cv2.error:
-                pass
-
     def recent_events(self, events):
         """ Main loop callback. """
         try:
-            t = t0 = get_time_monotonic()
             odometry_data = []
             video_data = []
-
-            # Only get new frames from the queues for self.max_latency_ms
-            while (t - t0) < self.max_latency_ms / 1000.:
-                while not self.odometry_queue.empty():
-                    odometry_data.append(self.odometry_queue.get())
-                while not self.video_queue.empty():
-                    video_data.append(self.video_queue.get())
-                    self.maybe_show_video(video_data[-1]["frame"])
-                t = get_time_monotonic()
-            else:
-                if self.verbose:
-                    logger.info(
-                        f"Stopped after fetching {len(odometry_data)} "
-                        f"odometry frames. Will resume after next world "
-                        f"frame.")
+            while not self.odometry_queue.empty():
+                odometry_data.append(self.odometry_queue.get())
+            while not self.video_queue.empty():
+                video_data.append(self.video_queue.get())
+                self.last_video_frame = video_data[-1]["frame"]
 
         except RuntimeError as e:
             logger.error(str(e))
@@ -327,16 +314,80 @@ class T265_Recorder(Plugin):
         if len(odometry_data) > 0:
             self.show_infos(odometry_data)
             if self.writer is not None:
-                for d in odometry_data:
-                    try:
-                        self.writer.append(d)
-                    except AttributeError:
-                        pass
+                self.write(odometry_data)
+
+        if self.t265_window_should_close:
+            self.close_t265_window()
+
+    def write(self, odometry_data):
+        """ Write new odometry to the .pldata file """
+        for d in odometry_data:
+            try:
+                self.writer.append(d)
+            except AttributeError:
+                pass
 
     def cleanup(self):
         """ Cleanup callback. """
         if self.pipeline is not None:
             self.start_stop_callback()
+
+    def open_t265_window(self):
+        """ Open a window to show the T265 video stream. """
+        if self.pipeline is None:
+            logger.error("Start pipeline to show T265 video stream")
+            return
+
+        if not self.t265_window:
+
+            width, height = 1696, 800
+            self.t265_window = glfwCreateWindow(
+                width, height, "T265 Video Stream", monitor=None,
+                share=glfwGetCurrentContext())
+
+            glfwSetWindowPos(self.t265_window, 200, 31)
+
+            # Register callbacks
+            glfwSetFramebufferSizeCallback(self.t265_window, on_resize)
+            glfwSetWindowCloseCallback(self.t265_window, self.on_t265_close)
+
+            on_resize(
+                self.t265_window, *glfwGetFramebufferSize(self.t265_window))
+
+            # gl_state settings
+            active_window = glfwGetCurrentContext()
+            glfwMakeContextCurrent(self.t265_window)
+            basic_gl_setup()
+            glfwMakeContextCurrent(active_window)
+
+    def gl_display(self):
+        """ Display routines called by the world process after each frame. """
+        if self.t265_window:
+            self.gl_display_in_t265_window()
+
+    def gl_display_in_t265_window(self):
+        """ Show new frame in window. """
+        active_window = glfwGetCurrentContext()
+        glfwMakeContextCurrent(self.t265_window)
+
+        clear_gl_screen()
+        if self.last_video_frame is not None:
+            make_coord_system_norm_based()
+            draw_gl_texture(self.last_video_frame)
+
+        glfwSwapBuffers(self.t265_window)
+        glfwMakeContextCurrent(active_window)
+
+    def on_t265_close(self, window=None):
+        """ Callback when windows is closed. """
+        self.t265_window_should_close = True
+
+    def close_t265_window(self):
+        """ Close T265 video stream window. """
+        self.t265_window_should_close = False
+        if self.t265_window:
+            glfwDestroyWindow(self.t265_window)
+            self.t265_window = None
 
     def on_notify(self, notification):
         """ Callback for notifications. """
@@ -373,6 +424,10 @@ class T265_Recorder(Plugin):
             "Start Pipeline", self.start_stop_callback)
         self.menu.append(self.buttons["start_stop_button"])
 
+        self.buttons["show_video_button"] = ui.Button(
+            "Show T265 Video Stream", self.open_t265_window)
+        self.menu.append(self.buttons["show_video_button"])
+
         self.infos["sampling_rate"] = ui.Info_Text("Waiting...")
         self.menu.append(self.infos["sampling_rate"])
         self.infos["confidence"] = ui.Info_Text("")
@@ -382,10 +437,6 @@ class T265_Recorder(Plugin):
         self.add_info_menu("orientation")
         self.add_info_menu("linear_velocity")
         self.add_info_menu("angular_velocity")
-
-        self.show_video_switch = ui.Switch(
-            "show_video", self, label="Show T265 Video Stream")
-        self.menu.append(self.show_video_switch)
 
     def deinit_ui(self):
         """ De-initialize plugin UI. """
@@ -433,8 +484,6 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         self.monitor_idx = monitor_idx
         self.fullscreen = fullscreen
         self.dist_mode = "Fisheye"
-        self.show_video_switch = None
-        self.show_video = False
         self.show_undistortion = False
 
         self.glfont = fontstash.Context()
@@ -447,8 +496,11 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
 
         self.odometry_queue = None
         self.video_queue = mp.Queue()
-
         self.pipeline = None
+
+        self.t265_window = None
+        self.t265_window_should_close = False
+        self.last_video_frame = None
 
     def collect_new_points(self, world_frame, realsense_frame):
         """ Collect calibration points from all cameras. """
@@ -583,6 +635,12 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
                     cam_mtx_left, dist_coefs_left,
                     (0, 0), R, T, cv2.CALIB_FIX_INTRINSIC)
 
+            # correct difference in coordinate systems
+            R_realsense_pupil = np.array(
+                [[1., 0., 0.], [0., -1., 0.], [0., 0., -1.]])
+            R_world_left = R_realsense_pupil @ R_world_left
+            T_world_left = R_realsense_pupil @ T_world_left
+
         except cv2.error as e:
             logger.warning(
                 f"World/left stereo calibration failed. Reason: {e}")
@@ -608,7 +666,7 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
             t265_video_frame = None
             while not self.video_queue.empty():
                 t265_video_frame = self.video_queue.get()["frame"]
-                self.maybe_show_video(t265_video_frame)
+                self.last_video_frame = t265_video_frame
 
         except RuntimeError as e:
             logger.error(str(e))
@@ -626,8 +684,17 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         if self.window_should_close:
             self.close_window()
 
+        if self.t265_window_should_close:
+            self.close_t265_window()
+
         if self.show_undistortion:
             logger.warning("Undistortion not yet implemented.")
+
+    def gl_display(self):
+        """ Display routines called by the world process after each frame. """
+        super().gl_display()
+        if self.t265_window:
+            self.gl_display_in_t265_window()
 
     def on_notify(self, notification):
         """ Callback for notifications. """
@@ -640,6 +707,10 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         self.buttons["start_stop_button"] = ui.Button(
             "Start Pipeline", self.start_stop_callback)
         self.menu.append(self.buttons["start_stop_button"])
+
+        self.buttons["show_video_button"] = ui.Button(
+            "Show T265 Video Stream", self.open_t265_window)
+        self.menu.append(self.buttons["show_video_button"])
 
         def get_monitors_idx_list():
             monitors = [glfwGetMonitorName(m) for m in glfwGetMonitors()]
@@ -675,10 +746,6 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
             "collect_new", self, setter=self.advance, label="I", hotkey="i")
         self.button.on_color[:] = (0.3, 0.2, 1.0, 0.9)
         self.g_pool.quickbar.insert(0, self.button)
-
-        self.show_video_switch = ui.Switch(
-            "show_video", self, label="Show T265 Video Stream")
-        self.menu.append(self.show_video_switch)
 
     def deinit_ui(self):
         """ De-initialize plugin UI. """
