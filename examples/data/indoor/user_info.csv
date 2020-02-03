@@ -1,5 +1,5 @@
 key,value
-subject,BS
+subject,000
 rvor_yaw_start,00:00:49
 rvor_yaw_end,00:00:59
 rvor_pitch_start,00:00:57
@@ -10,5 +10,4 @@ tvor_close_distance,1.219
 tvor_far_start,00:02:15
 tvor_far_end,00:02:25
 tvor_far_distance,2.143
-walk_start,00:02:44
-walk_end,00:06:19
+
