@@ -713,8 +713,8 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
 
         if self.monitor_idx not in get_monitors_idx_list()[0]:
             logger.warning(
-                "Monitor at index %s no longer availalbe using default" %
-                self.monitor_idx)
+                f"Monitor at index {self.monitor_idx} no longer available, "
+                f"using default")
             self.monitor_idx = 0
 
         self.menu.append(

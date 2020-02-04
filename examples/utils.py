@@ -17,15 +17,17 @@ except ImportError:
 
 # ----- IO METHODS ----- #
 def load_info(folder):
-    """
+    """ Load data from info.player.json file as dict.
 
     Parameters
     ----------
-    folder
+    folder: str
+        Path to the recording folder.
 
     Returns
     -------
-
+    dict
+        Loaded recording info.
     """
     with open(os.path.join(folder, 'info.player.json')) as f:
         info = json.load(f)
@@ -34,17 +36,23 @@ def load_info(folder):
 
 
 def load_user_info(folder, info, filename='user_info.csv'):
-    """ Load data from user_info.csv file as dict.
+    """ Load data from user info file as dict.
 
     Parameters
     ----------
-    folder
-    info
-    filename
+    folder: str
+        Path to the recording folder.
+
+    info: dict
+        Previously loaded recording info.
+
+    filename: str, default 'user_info.csv'
+        Filename of the user info file.
 
     Returns
     -------
-
+    dict
+        Loaded user info.
     """
     if not os.path.exists(os.path.join(folder, filename)):
         raise FileNotFoundError(
@@ -63,16 +71,20 @@ def load_user_info(folder, info, filename='user_info.csv'):
 
 
 def load_gaze(folder, info):
-    """
+    """ Load exported gaze positions as xarray.Dataset.
 
     Parameters
     ----------
-    folder
-    info
+    folder: str
+        Path to the export folder.
+
+    info: dict
+        Previously loaded recording info.
 
     Returns
     -------
-
+    xarray.Dataset
+        Loaded gaze positions.
     """
     df = pd.read_csv(os.path.join(folder, 'gaze_positions.csv'),
                      index_col='gaze_timestamp')
@@ -108,16 +120,20 @@ def load_gaze(folder, info):
 
 
 def load_odometry(folder, info):
-    """
+    """ Load exported odometry as xarray.Dataset.
 
     Parameters
     ----------
-    folder
-    info
+    folder: str
+        Path to the export folder.
+
+    info: dict
+        Previously loaded recording info.
 
     Returns
     -------
-
+    xarray.Dataset
+        Loaded odometry.
     """
     df = pd.read_csv(os.path.join(folder, 'odometry.csv'),
                      index_col='realsense_timestamp')
@@ -151,16 +167,23 @@ def load_odometry(folder, info):
 
 
 def load_extrinsics(folder, filename='t265_left_extrinsics.csv'):
-    """
+    """ Load camera extrinsics.
 
     Parameters
     ----------
-    folder
-    filename
+    folder: str
+        Path to the export folder.
+
+    filename: str, default 't265_left_extrinsic.csv'
+        Filename of the extrinsics file.
 
     Returns
     -------
+    t: numpy.ndarray, shape (3,)
+        Translation between the two cameras.
 
+    q: numpy.ndarray, shape (4,)
+        Rotation between the two cameras in quaternions.
     """
     with open(os.path.join(folder, filename)) as f:
         reader = csv.reader(f)
@@ -177,17 +200,23 @@ def load_extrinsics(folder, filename='t265_left_extrinsics.csv'):
 
 # ----- GAZE PRE-PROCESSING ----- #
 def smooth(data, axis=0, window_len=10):
-    """
+    """ Smooth data with a boxcar filer.
 
     Parameters
     ----------
-    data
-    axis
-    window_len
+    data: xarray.DataArray
+        Input data.
+
+    axis: int, default 0
+        The axis of the data representing the time dimension.
+
+    window_len: int, default 10
+        Length of the boxcar filter window.
 
     Returns
     -------
-
+    xarray.DataArray
+        Smoothed data.
     """
     # TODO dim
     data = data.copy()
@@ -199,47 +228,55 @@ def smooth(data, axis=0, window_len=10):
 
 
 def clean(data, *rules):
-    """
+    """ Replace samples with nan according to specified rules.
 
     Parameters
     ----------
-    data
-    rules
+    data: xarray.DataArray
+        Input data. First axis represents sample dimension.
+
+    *rules: array_like, bool dtype
+        Boolean indices of samples to keep. Must be one-dimensional and have
+        the same length as the first axis of the input array.
 
     Returns
     -------
-
+    xarray.DataArray
+        Cleaned data.
     """
     data = data.copy()
     idx = np.ones(data.sizes['time'], dtype=bool)
     for r in rules:
         idx *= r
     data.values[~idx] = np.nan
+
     return data
 
 
 # ----- SPATIAL TRANSFORMS ----- #
-r_pupil_analysis= as_float_array(from_rotation_matrix(np.array(
+r_pupil_analysis = as_float_array(from_rotation_matrix(np.array(
         [[0., 0., 1.], [-1., 0., 0.], [0., -1., 0.]]).T))
 
 
 def stack_rotations(*rotations):
-    """
+    """ Chain multiple rotation arrays expressed in quaternions
 
     Parameters
     ----------
-    rotations
+    *rotations: array_like, shape (..., 4, ...)
+        Quaternion arrays. All axes except for singleton axes must match.
 
     Returns
     -------
-
+    array_like, shape (..., 4, ...)
+        The resulting chained rotation.
     """
     from functools import reduce
     from operator import mul
 
+    # TODO return as_float_array(np.prod(as_quat_array(r) for r in rotations))
     return as_float_array(
         reduce(mul, (as_quat_array(r) for r in rotations), 1))
-    # TODO return as_float_array(np.prod(as_quat_array(r) for r in rotations))
 
 
 def rotate_vectors(v, q, axis=-1, inverse=False):
@@ -262,7 +299,7 @@ def rotate_vectors(v, q, axis=-1, inverse=False):
 
     Returns
     -------
-    vr: array_like
+    array_like
         The array of rotated vectors.
     """
     # TODO DataArray input/output
@@ -302,13 +339,13 @@ def shortest_arc_rotation(
     v2: array_like, shape (..., 3, ...)
         The second array of vectors.
 
-    dim : str, default 'cartesian_axis'
+    dim: str, default 'cartesian_axis'
         Dimension representing the coordinates of the vectors.
         Must be of length 3.
 
     Returns
     -------
-    q: xarray.DataArray, shape (..., 4, ...)
+    xarray.DataArray, shape (..., 4, ...)
         The quaternion representation of the shortest-arc rotation.
     """
     axis = v1.dims.index(dim)
@@ -336,16 +373,16 @@ def cartesian_to_spherical(
 
     Parameters
     ----------
-    data : xarray.DataArray
+    data: xarray.DataArray
         Input array.
 
-    dim : str, default 'cartesian_axis'
+    dim: str, default 'cartesian_axis'
         Dimension of input array representing x, y and z in cartesian
         coordinates. Must be of length 3.
 
     Returns
     -------
-    arr_spherical : xarray.DataArray
+    xarray.DataArray
         Output array.
     """
     if data.sizes[dim] != 3:
@@ -369,34 +406,40 @@ def cartesian_to_spherical(
 
 
 def center_spherical_coordinates(data):
-    """
+    """ Transform coordinates such that azimuth is measured from x-axis origin.
 
     Parameters
     ----------
-    data
+    data: xarray.DataArray
+        Input data.
 
     Returns
     -------
-
+    xarray.DataArray
+        Transformed data.
     """
     # TODO dim
     data = data.copy()
     data.values[:, 1] = data.values[:, 1] - np.pi / 2
+
     return data
 
 
 def radians_to_degrees(data):
-    """
+    """ Transform spherical coordinates from radians to degrees.
 
     Parameters
     ----------
-    data
+    data: xarray.DataArray
+        Input data.
 
     Returns
     -------
-
+    xarray.DataArray
+        Transformed data.
     """
     # TODO dim
     data = data.copy()
     data.values[:, 1:] = data.values[:, 1:] / np.pi * 180
+
     return data

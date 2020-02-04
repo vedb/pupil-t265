@@ -8,8 +8,10 @@
 
 ## Installation
 
-Copy `t265_capture.py` to `pupil_capture_settings/plugins` and 
-`t265_player.py` to `pupil_player_settings/plugins`.
+The plugins require a recent version of the Pupil Core software
+ (recommended `1.21`). Copy `t265_capture.py ` to 
+ `pupil_capture_settings/plugins` and `t265_player.py` to 
+ `pupil_player_settings/plugins`.
 
 ## Usage
 
@@ -26,3 +28,34 @@ The *T265 Recorder* will display live position, orientation and velocities
 
 Use the *T265 Exporter* plugin to export the recorded data to csv. The
  export contains two files: `odometry.csv` and `t265_left_extrinsics.csv`.
+
+## Example analysis
+
+The `examples` folder contains two recorded and exported datasets along with
+ analysis code as part of a short paper submission to the  12th ACM Symposium 
+ on Eye Tracking Research and Applications (ETRA 2020).
+ 
+To run the example code, clone the repository first. The recommended way of
+ installing the dependencies is through Anaconda/Miniconda by creating a
+ dedicated conda environment:
+ 
+    conda env create -f examples/example_env.yml
+    
+In your base environment, install `nb_conda`:
+
+    conda install nb_conda
+    
+Afterwards, start a Jupyter Notebook server from your base environment, open
+ the `etra2020.ipynb` Jupyter Notebook, go to *Kernel > Change kernel*
+ and select *Python [conda env:pupil-t265]*.
+ 
+Alternatively, you can install the dependencies via `pip`:
+
+    pip install xarray scipy numpy-quaternion numba fast-histogram matplotlib colorcet
+    
+## T265 mount
+
+The repository contains `.stl` files for 3D printing a mount for the T265
+ that can be attached to the Pupil Core world camera in the `mount` folder. 
+ `t265_housing.stl` is a housing for the tracker and `t265_clip.stl` is a
+ clip that is glued to the housing in order to attach it to the world camera.
