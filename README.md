@@ -35,9 +35,9 @@ The `examples` folder contains two recorded and exported datasets along with
  analysis code as part of a short paper submission to the  12th ACM Symposium 
  on Eye Tracking Research and Applications (ETRA 2020).
  
-To run the example code, clone the repository first. The recommended way of
- installing the dependencies is through Anaconda/Miniconda by creating a
- dedicated conda environment:
+To run the example code, clone or download the repository code first. The
+ recommended way of installing the dependencies is through Anaconda/Miniconda 
+ by creating a dedicated conda environment:
  
     conda env create -f examples/example_env.yml
     
