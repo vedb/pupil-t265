@@ -58,4 +58,5 @@ Alternatively, you can install the dependencies via `pip`:
 The repository contains `.stl` files for 3D printing a mount for the T265
  that can be attached to the Pupil Core world camera in the `mount` folder. 
  `t265_housing.stl` is a housing for the tracker and `t265_clip.stl` is a
- clip that is glued to the housing in order to attach it to the world camera.
+ clip that is printed twice and glued to the housing in order to attach it to
+ the world camera (see `mount_example.jpg`).
