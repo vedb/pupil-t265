@@ -5,7 +5,7 @@ dependencies:
   - python=3.6
   - pip
   - numpy
-  - opencv
+  - opencv=3.2.0
   - cysignals
   - cython
   - msgpack-python=0.5.6
