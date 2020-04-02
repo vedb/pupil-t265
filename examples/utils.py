@@ -400,7 +400,7 @@ def cartesian_to_spherical(
     data.values = np.stack((r, theta, phi), axis=axis)
 
     data = data.rename({dim: new_dim})
-    data[new_dim].values = ['r', 'theta', 'phi']
+    data[new_dim] = ['r', 'theta', 'phi']
 
     return data
 
