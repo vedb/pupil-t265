@@ -1,3 +1,5 @@
+[![DOI](https://img.shields.io/badge/DOI-10.1145%2F3379156.3391365-blue)](https://doi.org/10.1145/3379156.3391365)
+
 # pupil-t265
 
 **pupil-t265** provides plugins for the Pupil Core mobile eye tracking
@@ -5,6 +7,30 @@
  Intel RealSense T265 tracking camera. This way, the T265 can be used for
  simultaneous head tracking when rigidly mounted with respect to the Pupil Core
  world camera. 
+ 
+## Citation
+
+If you use **pupil-t265** in your research, please cite our paper 
+[Positional head-eye tracking outside the lab: an open-source solution](https://dl.acm.org/doi/abs/10.1145/3379156.3391365):
+
+    @inproceedings{10.1145/3379156.3391365,
+        author = {Hausamann, Peter and Sinnott, Christian and MacNeilage, Paul R.},
+        title = {Positional Head-Eye Tracking Outside the Lab: An Open-Source Solution},
+        year = {2020},
+        isbn = {9781450371346},
+        publisher = {Association for Computing Machinery},
+        address = {New York, NY, USA},
+        url = {https://doi.org/10.1145/3379156.3391365},
+        doi = {10.1145/3379156.3391365},
+        booktitle = {Symposium on Eye Tracking Research and Applications},
+        articleno = {14},
+        numpages = {5},
+        keywords = {gaze estimation, locomotion, open source, Eye tracking, head tracking, 
+                    mobile, simultaneous localization and mapping},
+        location = {Stuttgart, Germany},
+        series = {ETRA ’20}
+    }
+
 
 ## Installation
 
