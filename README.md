@@ -58,8 +58,7 @@ Use the *T265 Exporter* plugin to export the recorded data to csv. The
 ## Example analysis
 
 The `examples` folder contains two recorded and exported datasets along with
- analysis code as part of a short paper submission to the  12th ACM Symposium 
- on Eye Tracking Research and Applications (ETRA 2020).
+ analysis code to reproduce the results of the paper.
  
 To run the example code, clone or download the repository code first. The
  recommended way of installing the dependencies is through Anaconda/Miniconda 
