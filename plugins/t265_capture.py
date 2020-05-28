@@ -21,16 +21,20 @@ from pyglui.pyfontstash import fontstash
 from pyglui.ui import get_opensans_font_path
 from pyglui.cygl.utils import draw_gl_texture
 from glfw import *
-from gl_utils import \
-    basic_gl_setup, clear_gl_screen, make_coord_system_norm_based
+from gl_utils import basic_gl_setup, clear_gl_screen, make_coord_system_norm_based
 
 from plugin import Plugin
 from uvc import get_time_monotonic
 from file_methods import PLData_Writer, load_object, save_object
-from camera_intrinsics_estimation import \
-    Camera_Intrinsics_Estimation, _gen_pattern_grid, _make_grid, on_resize
+from camera_intrinsics_estimation import (
+    Camera_Intrinsics_Estimation,
+    _gen_pattern_grid,
+    _make_grid,
+    on_resize,
+)
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,22 +64,21 @@ class T265_Recorder(Plugin):
         super().__init__(g_pool)
 
         self.writer = None
-        self.max_latency_ms = 1.
+        self.max_latency_ms = 1.0
         self.verbose = False
 
         self.menu = None
-        self.buttons = {
-            "start_stop_button": None}
+        self.buttons = {"start_stop_button": None}
         self.infos = {
             "sampling_rate": None,
             "confidence": None,
             "position": None,
             "orientation": None,
             "angular_velocity": None,
-            "linear_velocity": None}
+            "linear_velocity": None,
+        }
 
-        self.g_pool.t265_extrinsics = self.load_extrinsics(
-            self.g_pool.user_dir)
+        self.g_pool.t265_extrinsics = self.load_extrinsics(self.g_pool.user_dir)
 
         self.odometry_queue = mp.Queue()
         self.video_queue = mp.Queue()
@@ -87,7 +90,7 @@ class T265_Recorder(Plugin):
         self.last_video_frame = None
 
     @classmethod
-    def get_serial_numbers(cls, suffix='T265'):
+    def get_serial_numbers(cls, suffix="T265"):
         """ Return serial numbers of connected devices.
 
         based on https://github.com/IntelRealSense/librealsense/issues/2332
@@ -109,15 +112,14 @@ class T265_Recorder(Plugin):
             serials = cls.get_serial_numbers()
         except RuntimeError as e:
             raise CannotStartPipeline(
-                f"Could not determine connected T265 devices. Reason: {e}")
+                f"Could not determine connected T265 devices. Reason: {e}"
+            )
 
         # check number of connected devices
         if len(serials) == 0:
-            raise CannotStartPipeline(
-                "No T265 device connected.")
+            raise CannotStartPipeline("No T265 device connected.")
         elif len(serials) > 1:
-            raise CannotStartPipeline(
-                "Multiple T265 devices not yet supported.")
+            raise CannotStartPipeline("Multiple T265 devices not yet supported.")
 
         try:
             pipeline = rs.pipeline()
@@ -141,7 +143,8 @@ class T265_Recorder(Plugin):
         except RuntimeError as e:
             raise CannotStartPipeline(
                 f"Could not start RealSense pipeline. Maybe another plugin "
-                f"is using it. Reason: {e}")
+                f"is using it. Reason: {e}"
+            )
 
         return pipeline
 
@@ -150,9 +153,10 @@ class T265_Recorder(Plugin):
         if self.pipeline is None:
             try:
                 self.pipeline = self.start_pipeline(
-                        callback=self.frame_callback,
-                        odometry=self.odometry_queue is not None,
-                        video=self.video_queue is not None)
+                    callback=self.frame_callback,
+                    odometry=self.odometry_queue is not None,
+                    video=self.video_queue is not None,
+                )
                 self.buttons["start_stop_button"].label = "Stop Pipeline"
                 logger.info("RealSense pipeline started.")
             except CannotStartPipeline as e:
@@ -193,8 +197,10 @@ class T265_Recorder(Plugin):
             logger.info(f"Loaded t265_{side}.extrinsics")
             return extrinsics
         except OSError:
-            logger.warning("No extrinsics found. Use the T265 Calibration "
-                           "plugin to calculate extrinsics.")
+            logger.warning(
+                "No extrinsics found. Use the T265 Calibration "
+                "plugin to calculate extrinsics."
+            )
 
     @classmethod
     def get_odometry_data(cls, rs_frame):
@@ -217,7 +223,7 @@ class T265_Recorder(Plugin):
             "position": (p.x, p.y, p.z),
             "orientation": (q.w, q.x, q.y, q.z),
             "linear_velocity": (v.x, v.y, v.z),
-            "angular_velocity": (w.x, w.y, w.z)
+            "angular_velocity": (w.x, w.y, w.z),
         }
 
     @classmethod
@@ -230,17 +236,23 @@ class T265_Recorder(Plugin):
 
         if side == "left":
             video_frame = np.asanyarray(
-                frameset.get_fisheye_frame(1).as_video_frame().get_data())
+                frameset.get_fisheye_frame(1).as_video_frame().get_data()
+            )
         elif side == "right":
             video_frame = np.asanyarray(
-                frameset.get_fisheye_frame(2).as_video_frame().get_data())
+                frameset.get_fisheye_frame(2).as_video_frame().get_data()
+            )
         elif side == "both":
-            video_frame = np.hstack([
-                np.asanyarray(
-                    frameset.get_fisheye_frame(1).as_video_frame().get_data()),
-                np.asanyarray(
-                    frameset.get_fisheye_frame(2).as_video_frame().get_data())
-            ])
+            video_frame = np.hstack(
+                [
+                    np.asanyarray(
+                        frameset.get_fisheye_frame(1).as_video_frame().get_data()
+                    ),
+                    np.asanyarray(
+                        frameset.get_fisheye_frame(2).as_video_frame().get_data()
+                    ),
+                ]
+            )
         else:
             raise ValueError(f"Unsupported mode: {side}")
 
@@ -248,29 +260,27 @@ class T265_Recorder(Plugin):
             "topic": "fisheye",
             "timestamp": t_pupil,
             "rs_timestamp": t,
-            "frame": video_frame
+            "frame": video_frame,
         }
 
     @classmethod
     def get_info_str(cls, values, axes, unit=None):
         """ Get string with current values for display. """
         if unit is None:
-            return ", ".join(
-                f"{a}: {v: .2f}" for v, a in zip(values, axes))
+            return ", ".join(f"{a}: {v: .2f}" for v, a in zip(values, axes))
         else:
-            return ", ".join(
-                f"{a}: {v: .2f} {unit}" for v, a in zip(values, axes))
+            return ", ".join(f"{a}: {v: .2f} {unit}" for v, a in zip(values, axes))
 
     def show_infos(self, odometry_data):
         """ Show current RealSense data in the plugin menu. """
         odometry_dict = {
-            k: np.array([d[k] for d in odometry_data])
-            for k in odometry_data[0]}
+            k: np.array([d[k] for d in odometry_data]) for k in odometry_data[0]
+        }
 
         if len(odometry_data) > 1:
             f_odometry = np.mean(1 / np.diff(odometry_dict["rs_timestamp"]))
         else:
-            f_odometry = 0.
+            f_odometry = 0.0
 
         c = np.mean(odometry_dict["tracker_confidence"])
         p = np.mean(odometry_dict["position"], axis=0)
@@ -279,18 +289,18 @@ class T265_Recorder(Plugin):
         w = np.mean(odometry_dict["angular_velocity"], axis=0)
 
         if self.pipeline is not None:
-            self.infos["sampling_rate"].text = \
-                f"Odometry sampling rate: {f_odometry:.2f} Hz"
-            self.infos["confidence"].text = \
-                f"Tracker confidence: {c}"
-            self.infos["position"].text = self.get_info_str(
-                p, ("x", "y", "z"), "m")
-            self.infos["orientation"].text = self.get_info_str(
-                q, ("w", "x", "y", "z"))
+            self.infos[
+                "sampling_rate"
+            ].text = f"Odometry sampling rate: {f_odometry:.2f} Hz"
+            self.infos["confidence"].text = f"Tracker confidence: {c}"
+            self.infos["position"].text = self.get_info_str(p, ("x", "y", "z"), "m")
+            self.infos["orientation"].text = self.get_info_str(q, ("w", "x", "y", "z"))
             self.infos["linear_velocity"].text = self.get_info_str(
-                v, ("x", "y", "z"), "m/s")
+                v, ("x", "y", "z"), "m/s"
+            )
             self.infos["angular_velocity"].text = self.get_info_str(
-                w, ("x", "y", "z"), "rad/s")
+                w, ("x", "y", "z"), "rad/s"
+            )
         else:
             for info in self.infos.values():
                 info.text = "Waiting..."
@@ -342,8 +352,12 @@ class T265_Recorder(Plugin):
 
             width, height = 1696, 800
             self.t265_window = glfwCreateWindow(
-                width, height, "T265 Video Stream", monitor=None,
-                share=glfwGetCurrentContext())
+                width,
+                height,
+                "T265 Video Stream",
+                monitor=None,
+                share=glfwGetCurrentContext(),
+            )
 
             glfwSetWindowPos(self.t265_window, 200, 31)
 
@@ -351,8 +365,7 @@ class T265_Recorder(Plugin):
             glfwSetFramebufferSizeCallback(self.t265_window, on_resize)
             glfwSetWindowCloseCallback(self.t265_window, self.on_t265_close)
 
-            on_resize(
-                self.t265_window, *glfwGetFramebufferSize(self.t265_window))
+            on_resize(self.t265_window, *glfwGetFramebufferSize(self.t265_window))
 
             # gl_state settings
             active_window = glfwGetCurrentContext()
@@ -396,17 +409,18 @@ class T265_Recorder(Plugin):
             if self.pipeline is None:
                 logger.warning(
                     "Pipeline is not running. T265 Recorder will not record "
-                    "any data.")
+                    "any data."
+                )
                 return
             if self.writer is None:
-                self.writer = PLData_Writer(
-                    notification["rec_path"], "odometry")
+                self.writer = PLData_Writer(notification["rec_path"], "odometry")
         if notification["subject"] == "recording.stopped":
             if self.writer is not None:
                 self.writer.close()
                 if hasattr(self.g_pool, "t265_extrinsics"):
                     self.save_extrinsics(
-                        notification["rec_path"], self.g_pool.t265_extrinsics)
+                        notification["rec_path"], self.g_pool.t265_extrinsics
+                    )
 
     def add_info_menu(self, measure):
         """ Add growing menu with infos. """
@@ -421,11 +435,13 @@ class T265_Recorder(Plugin):
         self.menu.label = "T265 Recorder"
 
         self.buttons["start_stop_button"] = ui.Button(
-            "Start Pipeline", self.start_stop_callback)
+            "Start Pipeline", self.start_stop_callback
+        )
         self.menu.append(self.buttons["start_stop_button"])
 
         self.buttons["show_video_button"] = ui.Button(
-            "Show T265 Video Stream", self.open_t265_window)
+            "Show T265 Video Stream", self.open_t265_window
+        )
         self.menu.append(self.buttons["show_video_button"])
 
         self.infos["sampling_rate"] = ui.Info_Text("Waiting...")
@@ -476,8 +492,7 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         # initialize empty menu
         self.menu = None
         # TODO merge these
-        self.buttons = {
-            "start_stop_button": None}
+        self.buttons = {"start_stop_button": None}
         self.button = None
         self.clicks_to_close = 5
         self.window_should_close = False
@@ -504,15 +519,18 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
 
     def collect_new_points(self, world_frame, realsense_frame):
         """ Collect calibration points from all cameras. """
-        img_left = realsense_frame[:, :realsense_frame.shape[1] // 2]
-        img_right = realsense_frame[:, realsense_frame.shape[1] // 2:]
+        img_left = realsense_frame[:, : realsense_frame.shape[1] // 2]
+        img_right = realsense_frame[:, realsense_frame.shape[1] // 2 :]
 
         status_world, grid_points_world = cv2.findCirclesGrid(
-            world_frame, (4, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
+            world_frame, (4, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID
+        )
         status_left, grid_points_left = cv2.findCirclesGrid(
-            img_left, (4, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
+            img_left, (4, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID
+        )
         status_right, grid_points_right = cv2.findCirclesGrid(
-            img_right, (4, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
+            img_right, (4, 11), flags=cv2.CALIB_CB_ASYMMETRIC_GRID
+        )
 
         if status_world and status_left and status_right:
             self.img_points.append(grid_points_world)
@@ -536,37 +554,42 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         super().advance(_)
 
     @classmethod
-    def calculate_intrinsics(cls, img_shape, img_points, obj_points, count=10,
-                             dist_mode="Fisheye"):
+    def calculate_intrinsics(
+        cls, img_shape, img_points, obj_points, count=10, dist_mode="Fisheye"
+    ):
         """ Calculate intrinsic parameters for one camera. """
         if dist_mode == "Fisheye":
             calibration_flags = (
                 cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC
                 + cv2.fisheye.CALIB_CHECK_COND
-                + cv2.fisheye.CALIB_FIX_SKEW)
+                + cv2.fisheye.CALIB_FIX_SKEW
+            )
 
             max_iter = 30
             eps = 1e-6
 
             camera_matrix = np.zeros((3, 3))
             dist_coefs = np.zeros((4, 1))
-            rvecs = [
-                np.zeros((1, 1, 3), dtype=np.float64) for i in range(count)]
-            tvecs = [
-                np.zeros((1, 1, 3), dtype=np.float64) for i in range(count)]
+            rvecs = [np.zeros((1, 1, 3), dtype=np.float64) for i in range(count)]
+            tvecs = [np.zeros((1, 1, 3), dtype=np.float64) for i in range(count)]
 
             objPoints = [x.reshape(1, -1, 3) for x in obj_points]
             imgPoints = img_points
 
             rms, _, _, _, _ = cv2.fisheye.calibrate(
-                objPoints, imgPoints, img_shape, camera_matrix, dist_coefs,
-                rvecs, tvecs, calibration_flags,
-                (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
-                 max_iter, eps))
+                objPoints,
+                imgPoints,
+                img_shape,
+                camera_matrix,
+                dist_coefs,
+                rvecs,
+                tvecs,
+                calibration_flags,
+                (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, eps),
+            )
 
         else:
-            raise ValueError(
-                f"Unkown distortion model: {dist_mode}")
+            raise ValueError(f"Unkown distortion model: {dist_mode}")
 
         logger.info(f"Calibrated Camera, RMS:{rms:.6f}")
 
@@ -576,79 +599,101 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         """ Calculate pose of left T265 camera wrt world camera. """
         try:
             cam_mtx_world, dist_coefs_world = self.calculate_intrinsics(
-                self.g_pool.capture.frame_size, self.img_points,
-                self.obj_points, self.count, self.dist_mode)
+                self.g_pool.capture.frame_size,
+                self.img_points,
+                self.obj_points,
+                self.count,
+                self.dist_mode,
+            )
             cam_mtx_left, dist_coefs_left = self.calculate_intrinsics(
-                (800, 848), self.img_points_left, self.obj_points, self.count)
+                (800, 848), self.img_points_left, self.obj_points, self.count
+            )
             cam_mtx_right, dist_coefs_right = self.calculate_intrinsics(
-                (800, 848), self.img_points_right, self.obj_points, self.count)
+                (800, 848), self.img_points_right, self.obj_points, self.count
+            )
 
         except cv2.error as e:
+            logger.warning(f"Camera calibration failed. Reason: {e}")
             logger.warning(
-                f"Camera calibration failed. Reason: {e}")
-            logger.warning(
-                "Please try again with a better coverage of the cameras FOV!")
+                "Please try again with a better coverage of the cameras FOV!"
+            )
             return
 
-
         obj_points = np.array(
-            [x.reshape(1, -1, 3) for x in self.obj_points], dtype=np.float64)
+            [x.reshape(1, -1, 3) for x in self.obj_points], dtype=np.float64
+        )
         img_points = np.array(
-            [x.reshape(1, -1, 2) for x in self.img_points], dtype=np.float64)
+            [x.reshape(1, -1, 2) for x in self.img_points], dtype=np.float64
+        )
         img_points_left = np.array(
-            [x.reshape(1, -1, 2) for x in self.img_points_left], 
-            dtype=np.float64)
+            [x.reshape(1, -1, 2) for x in self.img_points_left], dtype=np.float64
+        )
         img_points_right = np.array(
-            [x.reshape(1, -1, 2) for x in self.img_points_right], 
-            dtype=np.float64)
+            [x.reshape(1, -1, 2) for x in self.img_points_right], dtype=np.float64
+        )
 
         R = np.zeros((1, 1, 3), dtype=np.float64)
         T = np.zeros((1, 1, 3), dtype=np.float64)
 
         try:
-            rms, _, _, _, _, R_right_left, T_right_left = \
-                cv2.fisheye.stereoCalibrate(
-                    obj_points, img_points_right, img_points_left,
-                    cam_mtx_right, dist_coefs_right,
-                    cam_mtx_left, dist_coefs_left,
-                    (0, 0), R, T, cv2.CALIB_FIX_INTRINSIC)
+            rms, _, _, _, _, R_right_left, T_right_left = cv2.fisheye.stereoCalibrate(
+                obj_points,
+                img_points_right,
+                img_points_left,
+                cam_mtx_right,
+                dist_coefs_right,
+                cam_mtx_left,
+                dist_coefs_left,
+                (0, 0),
+                R,
+                T,
+                cv2.CALIB_FIX_INTRINSIC,
+            )
 
             # orientation inaccuracy is deviation from identity matrix
             inacc = np.linalg.norm(R_right_left - np.eye(3))
-            logger.info(f"Calibrated right/left pair, RMS:{rms:.6f}, "
-                        f"orientation inaccuracy:{inacc:.6f}")
+            logger.info(
+                f"Calibrated right/left pair, RMS:{rms:.6f}, "
+                f"orientation inaccuracy:{inacc:.6f}"
+            )
 
         except cv2.error as e:
-            logger.warning(
-                f"Right/left stereo calibration failed. Reason: {e}")
+            logger.warning(f"Right/left stereo calibration failed. Reason: {e}")
 
         try:
-            rms, _, _, _, _, R_world_left, T_world_left = \
-                cv2.fisheye.stereoCalibrate(
-                    obj_points, img_points, img_points_left,
-                    cam_mtx_world, dist_coefs_world,
-                    cam_mtx_left, dist_coefs_left,
-                    (0, 0), R, T, cv2.CALIB_FIX_INTRINSIC)
+            rms, _, _, _, _, R_world_left, T_world_left = cv2.fisheye.stereoCalibrate(
+                obj_points,
+                img_points,
+                img_points_left,
+                cam_mtx_world,
+                dist_coefs_world,
+                cam_mtx_left,
+                dist_coefs_left,
+                (0, 0),
+                R,
+                T,
+                cv2.CALIB_FIX_INTRINSIC,
+            )
 
             # correct difference in coordinate systems
             R_realsense_pupil = np.array(
-                [[1., 0., 0.], [0., -1., 0.], [0., 0., -1.]])
+                [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]]
+            )
             R_world_left = R_realsense_pupil @ R_world_left
             T_world_left = R_realsense_pupil @ T_world_left
 
         except cv2.error as e:
-            logger.warning(
-                f"World/left stereo calibration failed. Reason: {e}")
+            logger.warning(f"World/left stereo calibration failed. Reason: {e}")
 
         else:
             # TODO save world camera resolution and side?
             # TODO align pupil and realsense coordinate systems
             self.g_pool.t265_extrinsics = {
                 "translation": T_world_left.tolist(),
-                "rotation": R_world_left.tolist()}
+                "rotation": R_world_left.tolist(),
+            }
 
-            self.save_extrinsics(
-                self.g_pool.user_dir, self.g_pool.t265_extrinsics)
+            self.save_extrinsics(self.g_pool.user_dir, self.g_pool.t265_extrinsics)
 
     def recent_events(self, events):
         """ Main loop callback. """
@@ -700,11 +745,13 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         self.menu.label = "T265 Calibration"
 
         self.buttons["start_stop_button"] = ui.Button(
-            "Start Pipeline", self.start_stop_callback)
+            "Start Pipeline", self.start_stop_callback
+        )
         self.menu.append(self.buttons["start_stop_button"])
 
         self.buttons["show_video_button"] = ui.Button(
-            "Show T265 Video Stream", self.open_t265_window)
+            "Show T265 Video Stream", self.open_t265_window
+        )
         self.menu.append(self.buttons["show_video_button"])
 
         def get_monitors_idx_list():
@@ -714,25 +761,33 @@ class T265_Calibration(Camera_Intrinsics_Estimation, T265_Recorder):
         if self.monitor_idx not in get_monitors_idx_list()[0]:
             logger.warning(
                 f"Monitor at index {self.monitor_idx} no longer available, "
-                f"using default")
+                f"using default"
+            )
             self.monitor_idx = 0
 
         self.menu.append(
             ui.Info_Text(
                 "Estimate relative pose of world camera wrt left T265 camera. "
                 "Using an 11x9 asymmetrical circle grid. "
-                "Click 'i' to capture a pattern."))
+                "Click 'i' to capture a pattern."
+            )
+        )
 
         self.menu.append(ui.Button("show Pattern", self.open_window))
         self.menu.append(
             ui.Selector(
-                "monitor_idx", self, selection_getter=get_monitors_idx_list,
-                label="Monitor",))
+                "monitor_idx",
+                self,
+                selection_getter=get_monitors_idx_list,
+                label="Monitor",
+            )
+        )
 
         self.menu.append(ui.Switch("fullscreen", self, label="Use Fullscreen"))
 
         self.button = ui.Thumb(
-            "collect_new", self, setter=self.advance, label="I", hotkey="i")
+            "collect_new", self, setter=self.advance, label="I", hotkey="i"
+        )
         self.button.on_color[:] = (0.3, 0.2, 1.0, 0.9)
         self.g_pool.quickbar.insert(0, self.button)
 

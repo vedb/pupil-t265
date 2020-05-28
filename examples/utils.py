@@ -29,13 +29,13 @@ def load_info(folder):
     dict
         Loaded recording info.
     """
-    with open(os.path.join(folder, 'info.player.json')) as f:
+    with open(os.path.join(folder, "info.player.json")) as f:
         info = json.load(f)
 
     return info
 
 
-def load_user_info(folder, info, filename='user_info.csv'):
+def load_user_info(folder, info, filename="user_info.csv"):
     """ Load data from user info file as dict.
 
     Parameters
@@ -56,16 +56,18 @@ def load_user_info(folder, info, filename='user_info.csv'):
     """
     if not os.path.exists(os.path.join(folder, filename)):
         raise FileNotFoundError(
-            'File {} not found in folder {}'.format(filename, folder))
+            "File {} not found in folder {}".format(filename, folder)
+        )
 
     with open(os.path.join(folder, filename)) as f:
         reader = csv.reader(f)
-        user_info = {rows[0]: rows[1] for rows in reader if rows[0] != 'key'}
+        user_info = {rows[0]: rows[1] for rows in reader if rows[0] != "key"}
 
     for k, v in user_info.items():
-        if k.endswith(('start', 'end')) or 'time' in k:
+        if k.endswith(("start", "end")) or "time" in k:
             user_info[k] = pd.to_timedelta(v) + pd.to_datetime(
-                info['start_time_system_s'], unit='s')
+                info["start_time_system_s"], unit="s"
+            )
 
     return user_info
 
@@ -86,28 +88,33 @@ def load_gaze(folder, info):
     xarray.Dataset
         Loaded gaze positions.
     """
-    df = pd.read_csv(os.path.join(folder, 'gaze_positions.csv'),
-                     index_col='gaze_timestamp')
+    df = pd.read_csv(
+        os.path.join(folder, "gaze_positions.csv"), index_col="gaze_timestamp"
+    )
 
     df.index = pd.to_datetime(
-        df.index
-        - info['start_time_synced_s']
-        + info['start_time_system_s'], unit='s')
+        df.index - info["start_time_synced_s"] + info["start_time_system_s"], unit="s"
+    )
 
     coords = {
-        'time': pd.to_datetime(df.index.values, unit='s'),
-        'cartesian_axis': ['x', 'y', 'z'],
-        'pixel_axis': ['x', 'y']}
+        "time": pd.to_datetime(df.index.values, unit="s"),
+        "cartesian_axis": ["x", "y", "z"],
+        "pixel_axis": ["x", "y"],
+    }
 
     # fix sign flip issue in 3d gaze point z coordinate
-    df.loc[:, 'gaze_point_3d_z'] = np.abs(df.loc[:, 'gaze_point_3d_z'])
+    df.loc[:, "gaze_point_3d_z"] = np.abs(df.loc[:, "gaze_point_3d_z"])
 
     data_vars = {
-        'gaze_point': (['time', 'cartesian_axis'],
-                       df.loc[:, 'gaze_point_3d_x':'gaze_point_3d_z']),
-        'gaze_norm_pos': (['time', 'quaternion_axis'],
-                          df.loc[:, 'norm_pos_x':'norm_pos_y']),
-        'gaze_confidence': ('time', df['confidence']),
+        "gaze_point": (
+            ["time", "cartesian_axis"],
+            df.loc[:, "gaze_point_3d_x":"gaze_point_3d_z"],
+        ),
+        "gaze_norm_pos": (
+            ["time", "quaternion_axis"],
+            df.loc[:, "norm_pos_x":"norm_pos_y"],
+        ),
+        "gaze_confidence": ("time", df["confidence"]),
     }
 
     ds = xr.Dataset(data_vars, coords)
@@ -135,38 +142,48 @@ def load_odometry(folder, info):
     xarray.Dataset
         Loaded odometry.
     """
-    df = pd.read_csv(os.path.join(folder, 'odometry.csv'),
-                     index_col='realsense_timestamp')
+    df = pd.read_csv(
+        os.path.join(folder, "odometry.csv"), index_col="realsense_timestamp"
+    )
 
-    df.index = pd.to_datetime(df.index, unit='s')
+    df.index = pd.to_datetime(df.index, unit="s")
 
     coords = {
-        'time': pd.to_datetime(df.index.values, unit='s'),
-        'cartesian_axis': ['x', 'y', 'z'],
-        'quaternion_axis': ['w', 'x', 'y', 'z']}
+        "time": pd.to_datetime(df.index.values, unit="s"),
+        "cartesian_axis": ["x", "y", "z"],
+        "quaternion_axis": ["w", "x", "y", "z"],
+    }
 
     data_vars = {
-        'position': (['time', 'cartesian_axis'],
-                     df.loc[:, 'position_x':'position_z']),
-        'orientation': (['time', 'quaternion_axis'],
-                        df.loc[:, 'orientation_w':'orientation_z']),
-        'linear_velocity': (['time', 'cartesian_axis'],
-                            df.loc[:,
-                            'linear_velocity_x':'linear_velocity_z']),
-        'angular_velocity': (['time', 'cartesian_axis'],
-                             df.loc[:,
-                             'angular_velocity_x':'angular_velocity_z']),
-        'tracker_confidence': ('time', df['tracker_confidence']),
-        'capture_timestamp': ('time', pd.to_datetime(
-            df['capture_timestamp']
-            - info['start_time_synced_s']
-            + info['start_time_system_s'], unit='s')),
+        "position": (["time", "cartesian_axis"], df.loc[:, "position_x":"position_z"]),
+        "orientation": (
+            ["time", "quaternion_axis"],
+            df.loc[:, "orientation_w":"orientation_z"],
+        ),
+        "linear_velocity": (
+            ["time", "cartesian_axis"],
+            df.loc[:, "linear_velocity_x":"linear_velocity_z"],
+        ),
+        "angular_velocity": (
+            ["time", "cartesian_axis"],
+            df.loc[:, "angular_velocity_x":"angular_velocity_z"],
+        ),
+        "tracker_confidence": ("time", df["tracker_confidence"]),
+        "capture_timestamp": (
+            "time",
+            pd.to_datetime(
+                df["capture_timestamp"]
+                - info["start_time_synced_s"]
+                + info["start_time_system_s"],
+                unit="s",
+            ),
+        ),
     }
 
     return xr.Dataset(data_vars, coords)
 
 
-def load_extrinsics(folder, filename='t265_left_extrinsics.csv'):
+def load_extrinsics(folder, filename="t265_left_extrinsics.csv"):
     """ Load camera extrinsics.
 
     Parameters
@@ -187,11 +204,9 @@ def load_extrinsics(folder, filename='t265_left_extrinsics.csv'):
     """
     with open(os.path.join(folder, filename)) as f:
         reader = csv.reader(f)
-        t = np.array(
-            [float(row[1]) for row in reader if row[0].startswith('T')])
+        t = np.array([float(row[1]) for row in reader if row[0].startswith("T")])
         f.seek(0)
-        R = np.array(
-            [float(row[1]) for row in reader if row[0].startswith('R')])
+        R = np.array([float(row[1]) for row in reader if row[0].startswith("R")])
 
     q = as_float_array(from_rotation_matrix(R.reshape(3, 3)))
 
@@ -221,8 +236,8 @@ def smooth(data, axis=0, window_len=10):
     # TODO dim
     data = data.copy()
     data.values = fftconvolve(
-        data.values, np.ones((window_len, 1)) / window_len,
-        mode='same', axes=axis)
+        data.values, np.ones((window_len, 1)) / window_len, mode="same", axes=axis
+    )
 
     return data
 
@@ -245,7 +260,7 @@ def clean(data, *rules):
         Cleaned data.
     """
     data = data.copy()
-    idx = np.ones(data.sizes['time'], dtype=bool)
+    idx = np.ones(data.sizes["time"], dtype=bool)
     for r in rules:
         idx *= r
     data.values[~idx] = np.nan
@@ -254,8 +269,11 @@ def clean(data, *rules):
 
 
 # ----- SPATIAL TRANSFORMS ----- #
-r_pupil_analysis = as_float_array(from_rotation_matrix(np.array(
-        [[0., 0., 1.], [-1., 0., 0.], [0., -1., 0.]]).T))
+r_pupil_analysis = as_float_array(
+    from_rotation_matrix(
+        np.array([[0.0, 0.0, 1.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0]]).T
+    )
+)
 
 
 def stack_rotations(*rotations):
@@ -275,8 +293,7 @@ def stack_rotations(*rotations):
     from operator import mul
 
     # TODO return as_float_array(np.prod(as_quat_array(r) for r in rotations))
-    return as_float_array(
-        reduce(mul, (as_quat_array(r) for r in rotations), 1))
+    return as_float_array(reduce(mul, (as_quat_array(r) for r in rotations), 1))
 
 
 def rotate_vectors(v, q, axis=-1, inverse=False):
@@ -305,17 +322,18 @@ def rotate_vectors(v, q, axis=-1, inverse=False):
     # TODO DataArray input/output
     if q.shape[axis] != 4:
         raise ValueError(
-            'Expected axis {} of q to have length 4, got {}'.format(
-                axis, q.shape[axis]))
+            "Expected axis {} of q to have length 4, got {}".format(axis, q.shape[axis])
+        )
 
     if v.shape[axis] != 3:
         raise ValueError(
-            'Expected axis {} of v to have length 3, got {}'.format(
-                axis, v.shape[axis]))
+            "Expected axis {} of v to have length 3, got {}".format(axis, v.shape[axis])
+        )
 
     if inverse:
-        q = np.swapaxes(as_float_array(
-            1./as_quat_array(np.swapaxes(q, axis, -1))), axis, -1)
+        q = np.swapaxes(
+            as_float_array(1.0 / as_quat_array(np.swapaxes(q, axis, -1))), axis, -1
+        )
 
     # compute rotation
     r = np.take(q, (1, 2, 3), axis=axis)
@@ -327,8 +345,7 @@ def rotate_vectors(v, q, axis=-1, inverse=False):
     return vr
 
 
-def shortest_arc_rotation(
-        v1, v2, dim='cartesian_axis', new_dim='quaternion_axis'):
+def shortest_arc_rotation(v1, v2, dim="cartesian_axis", new_dim="quaternion_axis"):
     """ Estimate the shortest-arc rotation between two arrays of vectors.
 
     Parameters
@@ -360,13 +377,12 @@ def shortest_arc_rotation(
     dims = list(v1.dims)
     dims.remove(dim)
     dims.insert(axis, new_dim)
-    coords[new_dim] = ['w', 'x', 'y', 'z']
+    coords[new_dim] = ["w", "x", "y", "z"]
 
     return xr.DataArray(q, coords, dims)
 
 
-def cartesian_to_spherical(
-        data, dim='cartesian_axis', new_dim='spherical_axis'):
+def cartesian_to_spherical(data, dim="cartesian_axis", new_dim="spherical_axis"):
     """ Transform cartesian to spherical coordinates in three dimensions.
 
     The spherical coordinate system is defined according to ISO 80000-2.
@@ -387,8 +403,10 @@ def cartesian_to_spherical(
     """
     if data.sizes[dim] != 3:
         raise ValueError(
-            'Expected length of dimension {} to be 3, got {} instead.'.format(
-                dim, data.data.sizes[dim]))
+            "Expected length of dimension {} to be 3, got {} instead.".format(
+                dim, data.data.sizes[dim]
+            )
+        )
 
     data = data.copy()
     arr = data.values
@@ -400,7 +418,7 @@ def cartesian_to_spherical(
     data.values = np.stack((r, theta, phi), axis=axis)
 
     data = data.rename({dim: new_dim})
-    data[new_dim] = ['r', 'theta', 'phi']
+    data[new_dim] = ["r", "theta", "phi"]
 
     return data
 

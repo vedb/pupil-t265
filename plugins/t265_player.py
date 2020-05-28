@@ -20,6 +20,7 @@ import player_methods as pm
 from file_methods import load_pldata_file, load_object
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,8 +45,7 @@ class T265_Exporter(Raw_Data_Exporter):
         """ Abuse Bisector class for odometry data. """
         odometry_data_file = load_pldata_file(rec_dir, "odometry")
 
-        return pm.Bisector(
-            odometry_data_file.data, odometry_data_file.timestamps)
+        return pm.Bisector(odometry_data_file.data, odometry_data_file.timestamps)
 
     @classmethod
     def load_extrinsics(cls, directory, side="left"):
@@ -56,20 +56,23 @@ class T265_Exporter(Raw_Data_Exporter):
             logger.info(f"Loaded t265_{side}.extrinsics")
             return extrinsics
         except OSError:
-            logger.warning("No extrinsics found. Use the T265 Calibration "
-                           "plugin to calculate extrinsics.")
+            logger.warning(
+                "No extrinsics found. Use the T265 Calibration "
+                "plugin to calculate extrinsics."
+            )
 
     @classmethod
     def export_extrinsics(cls, directory, t265_extrinsics, side="left"):
         """ Export extrinsics to export dir. """
         export_path = os.path.join(directory, f"t265_{side}_extrinsics.csv")
 
-        translation = np.array(t265_extrinsics['translation']).flatten()
-        T_dict = {f'T_{idx}': value for idx, value in enumerate(translation)}
+        translation = np.array(t265_extrinsics["translation"]).flatten()
+        T_dict = {f"T_{idx}": value for idx, value in enumerate(translation)}
 
-        rotation = np.array(t265_extrinsics['rotation'])
-        R_dict = {f'R_{row}_{col}': value
-                  for (row, col), value in np.ndenumerate(rotation)}
+        rotation = np.array(t265_extrinsics["rotation"])
+        R_dict = {
+            f"R_{row}_{col}": value for (row, col), value in np.ndenumerate(rotation)
+        }
 
         with open(export_path, "w", encoding="utf-8", newline="") as csvfile:
             writer = csv.writer(csvfile)
@@ -85,10 +88,10 @@ class T265_Exporter(Raw_Data_Exporter):
         """ Export data when notified. """
         odometry_exporter = OdometryExporter()
         odometry_exporter.csv_export_write(
-                positions_bisector=self.g_pool.odometry_bisector,
-                timestamps=self.g_pool.timestamps,
-                export_window=export_window,
-                export_dir=export_dir,
+            positions_bisector=self.g_pool.odometry_bisector,
+            timestamps=self.g_pool.timestamps,
+            export_window=export_window,
+            export_dir=export_dir,
         )
 
         if self.extrinsics is not None:
@@ -101,10 +104,12 @@ class T265_Exporter(Raw_Data_Exporter):
         self.menu.append(
             ui.Info_Text(
                 "The export can be found in the exports folder, "
-                "under the recording directory."))
+                "under the recording directory."
+            )
+        )
         self.menu.append(
-            ui.Info_Text(
-                "Press the export button or type 'e' to start the export."))
+            ui.Info_Text("Press the export button or type 'e' to start the export.")
+        )
 
     def deinit_ui(self):
         """ De-initialize plugin UI. """
@@ -147,10 +152,11 @@ class OdometryExporter(_Base_Positions_Exporter):
         """ One row of the CSV file. """
         return {
             "capture_timestamp": raw_value["timestamp"],
-            "realsense_timestamp": raw_value.get("rs_timestamp", 0.),
+            "realsense_timestamp": raw_value.get("rs_timestamp", 0.0),
             "world_index": world_index,
             "tracker_confidence": raw_value.get(
-                "tracker_confidence", raw_value.get("confidence", -1)),
+                "tracker_confidence", raw_value.get("confidence", -1)
+            ),
             "position_x": raw_value["position"][0],
             "position_y": raw_value["position"][1],
             "position_z": raw_value["position"][2],
